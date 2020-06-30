@@ -49,6 +49,7 @@ struct sugov_policy {
 	s64 down_rate_delay_ns;
 	unsigned int next_freq;
 	unsigned int cached_raw_freq;
+	unsigned int prev_cached_raw_freq;
 
 	/* The next fields are only needed if fast switch cannot be used. */
 	struct irq_work irq_work;
@@ -168,8 +169,8 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 		return;
 
 	if (sugov_up_down_rate_limit(sg_policy, time, next_freq)) {
-		/* Don't cache a raw freq that didn't become next_freq */
-		sg_policy->cached_raw_freq = 0;
+		/* Restore cached freq as next_freq is not changed */
+		sg_policy->cached_raw_freq = sg_policy->prev_cached_raw_freq;
 		return;
 	}
 
@@ -234,6 +235,7 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	freq = freq * util / max;
 	freq = freq / SCHED_CAPACITY_SCALE * capacity_margin;
 
+	sg_policy->prev_cached_raw_freq = sg_policy->cached_raw_freq;
 	sg_policy->cached_raw_freq = freq;
 #ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
 	return freq;
@@ -362,7 +364,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 
 	if (flags & SCHED_CPUFREQ_DL) {
 		/* clear cache when it's bypassed */
-		sg_policy->cached_raw_freq = 0;
+		sg_policy->cached_raw_freq = sg_policy->prev_cached_raw_freq;
 		next_f = policy->cpuinfo.max_freq;
 	} else {
 		sugov_get_util(&util, &max, sg_cpu->cpu);
@@ -382,8 +384,8 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		    sg_policy->next_freq != UINT_MAX) {
 			next_f = sg_policy->next_freq;
 
-			/* Reset cached freq as next_freq has changed */
-			sg_policy->cached_raw_freq = 0;
+			/* Restore cached freq as next_freq has changed */
+			sg_policy->cached_raw_freq = sg_policy->prev_cached_raw_freq;
 		}
 	}
 
@@ -421,8 +423,7 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 				continue;
 		}
 		if (j_sg_cpu->flags & SCHED_CPUFREQ_DL) {
-			/* clear cache when it's bypassed */
-			sg_policy->cached_raw_freq = 0;
+			sg_policy->cached_raw_freq = sg_policy->prev_cached_raw_freq;
 			return policy->cpuinfo.max_freq;
 		}
 
@@ -475,8 +476,7 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
 	if (sugov_should_update_freq(sg_policy, time)) {
 		if (flags & SCHED_CPUFREQ_DL) {
 			next_f = sg_policy->policy->cpuinfo.max_freq;
-			/* clear cache when it's bypassed */
-			sg_policy->cached_raw_freq = 0;
+			sg_policy->cached_raw_freq = sg_policy->prev_cached_raw_freq;
 		} else {
 			next_f = sugov_next_freq_shared(sg_cpu, time);
 		}
@@ -903,6 +903,7 @@ static int sugov_start(struct cpufreq_policy *policy)
 	sg_policy->work_in_progress = false;
 	sg_policy->need_freq_update = false;
 	sg_policy->cached_raw_freq = 0;
+	sg_policy->prev_cached_raw_freq = 0;
 
 	for_each_cpu(cpu, policy->cpus) {
 		struct sugov_cpu *sg_cpu = &per_cpu(sugov_cpu, cpu);
