@@ -1886,7 +1886,8 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #endif
 
 	ts->event_wq = alloc_workqueue("nvt-event-queue",
-						WQ_UNBOUND | WQ_HIGHPRI, 1);
+						WQ_HIGHPRI | WQ_UNBOUND | WQ_FREEZABLE |
+			    		WQ_MEM_RECLAIM, 0);	
 	if (!ts->event_wq) {
 		NVT_ERR("ERROR: Cannot create work thread\n");
 		goto err_alloc_event_wq_failed;
