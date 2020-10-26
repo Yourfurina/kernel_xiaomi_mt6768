@@ -15,6 +15,8 @@
 #include <linux/devfreq_boost.h>
 #include <linux/pid_namespace.h>
 #include <linux/cgroupstats.h>
+#include <linux/binfmts.h>
+#include <linux/cpu_input_boost.h>
 
 #include <trace/events/cgroup.h>
 #ifdef CONFIG_MTK_TASK_TURBO
@@ -573,6 +575,13 @@ static ssize_t __cgroup1_procs_write(struct kernfs_open_file *of,
 	    !strcmp(of->kn->parent->name, "top-app") &&
 	    is_zygote_pid(task->parent->pid)) {
 		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 1250);
+	}
+
+	/* This covers boosting for app launches and app transitions */
+	if (!ret && !threadgroup &&
+		!memcmp(of->kn->parent->name, "top-app", sizeof("top-app")) &&
+		is_zygote_pid(task->parent->pid)) {
+		cpu_input_boost_kick_max(1000);
 	}
 
 out_finish:
