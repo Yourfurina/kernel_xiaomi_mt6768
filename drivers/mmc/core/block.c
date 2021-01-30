@@ -1796,7 +1796,7 @@ static int mmc_blk_cmdq_issue_discard_rq(struct mmc_queue *mq,
 
 	if (!mmc_can_erase(card)) {
 		err = BLK_STS_NOTSUPP;
-		blk_end_request(req, err, blk_rq_bytes(req));
+		blk_end_request(req, BLK_STS_NOTSUPP, blk_rq_bytes(req));
 		goto out;
 	}
 
@@ -1972,8 +1972,8 @@ static int mmc_blk_cmdq_issue_secdiscard_rq(struct mmc_queue *mq,
 	int err = 0;
 
 	if (!(mmc_can_secure_erase_trim(card))) {
-		err = BLK_STS_NOTSUPP;
-		blk_end_request(req, err, blk_rq_bytes(req));
+		err = -EOPNOTSUPP;
+		blk_end_request(req, BLK_STS_NOTSUPP, blk_rq_bytes(req));
 		goto out;
 	}
 
@@ -3190,6 +3190,7 @@ void mmc_blk_cmdq_complete_rq(struct request *rq)
 	bool is_dcmd = false;
 	bool err_rwsem = false;
 #ifdef CONFIG_MTK_MMC_DEBUG
+	blk_status_t blk_err = BLK_STS_OK;
 	int cpu = -1;
 #endif
 	if (down_read_trylock(&ctx_info->err_rwsem)) {
@@ -3207,6 +3208,10 @@ void mmc_blk_cmdq_complete_rq(struct request *rq)
 		err = mrq->data->error;
 	if (cmdq_req->resp_err)
 		err_resp = cmdq_req->resp_err;
+
+	if (err)
+		blk_err = BLK_STS_IOERR;
+
 
 #ifdef MMC_CQHCI_DEBUG
 	pr_debug("%s: %s completed req = 0x%p, err = %d, tag = %d\n",
@@ -3258,7 +3263,7 @@ void mmc_blk_cmdq_complete_rq(struct request *rq)
 		mmc_cmdq_post_req(host, cmdq_req->tag, err);
 	if (cmdq_req->cmdq_req_flags & DCMD) {
 		clear_bit(CMDQ_STATE_DCMD_ACTIVE, &ctx_info->curr_state);
-		blk_end_request_all(rq, err);
+		blk_end_request_all(rq, blk_err);
 		goto out;
 	}
 	/*
@@ -3269,7 +3274,7 @@ void mmc_blk_cmdq_complete_rq(struct request *rq)
 	 */
 	if (err && cmdq_req->skip_err_handling) {
 		cmdq_req->skip_err_handling = false;
-		blk_end_request_all(rq, err);
+		blk_end_request_all(rq, blk_err);
 		goto out;
 	}
 	mt_biolog_cqhci_complete(cmdq_req->tag);
