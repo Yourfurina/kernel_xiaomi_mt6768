@@ -402,9 +402,10 @@ static int fts_ecc_cal_tp(u32 ecc_saddr, u32 ecc_len, u16 *ecc_value)
 		FTS_ERROR("ecc finish cmd fail");
 		return ret;
 	}
-	if (upg->setting_nf->eccok_val == value[0])
-		break;
-		mdelay(1);
+    if (upg->setting_nf->eccok_val == value[0]) {
+        break;
+        mdelay(1);
+    }
     }
     if (i >= FTS_ECC_FINISH_TIMEOUT) {
 	FTS_ERROR("wait ecc finish timeout,ecc_finish=%x", value[0]);
