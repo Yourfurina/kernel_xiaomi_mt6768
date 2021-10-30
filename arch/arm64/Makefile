@@ -99,6 +99,20 @@ else
 KBUILD_CFLAGS	+= -mgeneral-regs-only
 endif
 KBUILD_CFLAGS	+= $(lseinstr) $(brokengasinst) $(vdso32)
+#ifdef CONFIG_MACH_MT6768
+CL_FLAGS += -O3 -mcpu=cortex-a55+crypto+crc
+GC_FLAGS += -O3 -mcpu=cortex-a75.cortex-a55+crypto+crc
+ifeq ($(cc-name),gcc)
+KBUILD_CFLAGS  += $(GC_FLAGS)
+KBUILD_AFLAGS  += $(GC_FLAGS)
+KBUILD_LDFLAGS += $(GC_FLAGS)
+endif
+ifeq ($(cc-name),clang)
+KBUILD_CFLAGS  += $(CL_FLAGS)
+KBUILD_AFLAGS  += $(CL_FLAGS)
+KBUILD_LDFLAGS += $(CL_FLAGS)
+endif
+#endif
 KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
 KBUILD_CFLAGS	+= $(call cc-option, -mpc-relative-literal-loads)
 KBUILD_CFLAGS	+= -fno-pic
