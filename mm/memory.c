@@ -3174,6 +3174,11 @@ int do_swap_page(struct vm_fault *vmf)
 	if (vma_readahead)
 		page = swap_readahead_detect(vmf, &swap_ra);
 
+	if (vmf->flags & FAULT_FLAG_SPECULATIVE) {
+		pte_unmap(vmf->pte);
+		return VM_FAULT_RETRY;
+	}
+
 	ret = pte_unmap_same(vmf);
 	if (ret) {
 		if (page)
