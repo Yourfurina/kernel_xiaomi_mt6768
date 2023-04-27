@@ -467,6 +467,7 @@ static struct usb_function *rawbulk_alloc(struct usb_function_instance *fi,
 		fn->function.free_func = rawbulk_free;
 
 		INIT_WORK(&fn->activator, do_activate);
+		fn->activated = -1;
 		fn->initialized = -1;
 	}
 
