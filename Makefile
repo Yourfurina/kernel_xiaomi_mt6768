@@ -1030,6 +1030,9 @@ KBUILD_CFLAGS += $(call cc-disable-warning, unused-function)
 # disable warning -Wunused-variable
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-variable)
 
+# disable warning -Werror=enum-int-mismatch
+KBUILD_CFLAGS += $(call cc-disable-warning, enum-int-mismatch)
+
 # disable invalid "can't wrap" optimizations for signed / pointers
 KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
 
