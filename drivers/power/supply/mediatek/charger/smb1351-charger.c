@@ -431,7 +431,7 @@ enum usbsw_state {
 	USBSW_USB,
 };
 
-static const enum power_supply_type const smblib_apsd_results[] = {
+static enum power_supply_type const smblib_apsd_results[] = {
 	POWER_SUPPLY_TYPE_UNKNOWN,
 	POWER_SUPPLY_TYPE_USB,
 	POWER_SUPPLY_TYPE_USB_CDP,
